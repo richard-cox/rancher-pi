@@ -41,19 +41,24 @@ Ubuntu Server 20.04.4 LTS
     - SW
       - Kube Cluster (internal) - K3S Node - Agent
       - Pihole
-      - Plex(?)
-  - ?Pi4 (8GB - 128GB)
+  - Pi4 (8GB - 128GB)
     - K3S (worker)
+    - Reserved 192.168.86.31
+    - hostnamectl set-hostname pi4
+    - SW
+      - Kube Cluster (internal) - K3S Node - Agent
+      - Plex(?)
 - External (wifi - guest network)
-  - Pi5 (4GB - 64GB)
-  - Pi6 (4GB - 64GB)
+  - Pi? (8GB - 64GB)
+  - Pi? (4GB - 64GB)
+
+NOTE - The case has four fans in, which are noiser than expected. Had hoped to keep the unit centrally in my flat, however had to move it in to a cupboard.
   
 # Setup Pi 1 (Internal - Rancher Manager)
 - Install K3S
   - https://rancher.com/docs/k3s/latest/en/installation/install-options/ / https://rancher.com/docs/rancher/v2.6/en/installation/resources/k8s-tutorials/ha-with-external-db/
    “ Failed to find memory cgroup, you may need to add "cgroup_memory=1 cgroup_enable=memory" to your linux cmdline (/boot/cmdline.txt on a Raspberry Pi)”
 https://askubuntu.com/questions/1189480/raspberry-pi-4-ubuntu-19-10-cannot-enable-cgroup-memory-at-boostrap
-
   - NOTE - args wise i had trouble with the config file, so args at command line
   - NOTE - `K3S_KUBECONFIG_MODE` never seemed to work for me, had to manually set file permisions (`sudo chmod 644 /etc/rancher/k3s/k3s.yaml`)
   - NOTE - This fails on Pi / Ubuntu Server with below, but the recommended fix isn't correct
@@ -81,15 +86,13 @@ https://askubuntu.com/questions/1189480/raspberry-pi-4-ubuntu-19-10-cannot-enabl
     - Even this method had issues, the cert-manager resources would show as failed until ~10-15 minutes. After that restarting all deployments seemed to work (cert used by rancher was issued by `dynamiclistener-ca` with correct `subject alternative name / SAN` of the rancher domain)
   - NOTE - `helm install rancher rancher-stable/rancher --namespace cattle-system --set hostname=<pi internal ip>.nip.io --set replicas=1`
 - Install Longhorn
-  - Note - change `Lonhorn Storage Class Settings`/ `Storage Class Retain Policy` to `Retain` to work better with `Rancher Backup`
+  - NOTE - change `Lonhorn Storage Class Settings`/ `Storage Class Retain Policy` to `Retain` to work better with `Rancher Backup`
+  - NOTE - longhorn sets itself as default, but does not unset other defaults, leading to `Error: INSTALLATION FAILED: persistentvolumeclaims "pihole" is forbidden: Internal error occurred: 2 default StorageClasses were found`
 - Install Rancher Backup
   - Use the longhorn storage class
 - Create a routine Rancher Backup to run monthly
 - Install Rancher Monitoring
   - NOTE - unable to to this, Pi only has 4CPU - `This chart requires 4.5 CPU cores, but the cluster only has 3.8 available.`
-
-TODO: 
-Problems in paralelt - cert & import cluster??
 
 # Setup Pi 2 & 3 (Internal - Cluster 1 Master & Slave)
 - Attempt #1 - Via Rancher Manager's 'Create Custom' feature
@@ -101,6 +104,9 @@ Problems in paralelt - cert & import cluster??
   - https://360techexplorer.com/install-k3s-on-raspberry-pi/
   - Pi2 (master) - `sudo curl -sfL https://get.k3s.io | K3S_KUBECONFIG_MODE="0644" INSTALL_K3S_VERSION="v1.23.7+k3s1" K3S_NODE_NAME="pi2" INSTALL_K3S_EXEC="--node-ip 192.168.86.26 --node-external-ip 192.168.86.26" sh -`
     - NOTE - After a lot of issues discovered both `--node-ip` and `--node-external-ip` had to be set
+    - NOTE - After the cluster was up I tried to manully apply a NoSchedule taint to the master node, however this caused the rancher agent to fail to connect! Had to start again, this time applying the taint before registering the agent
+      - see https://ikarus.sg/kubernetes-with-k3s/
+      - `kubectl taint nodes pi2 node-role.kubernetes.io/master=true:NoSchedule`
   - Pi3 (agent) - `sudo curl -sfL https://get.k3s.io | K3S_TOKEN="` + `<snip>::node:<snip>` + `" K3S_URL="https://192.168.86.26:6443" K3S_NODE_NAME="pi3" INSTALL_K3S_VERSION="v1.23.7+k3s1" sh -`
     - NOTE - All docs say that the `K3S_TOKEN` comes from the master node via `sudo cat /var/lib/rancher/k3s/server/node-token`. For me this was in the format of `<snip 1>::server:<snip 2>` and did NOT work
       - Errors
@@ -110,20 +116,51 @@ Problems in paralelt - cert & import cluster??
        - To get this working I had to use `<snip 1>::node:<node pswd from /var/lib/rancher/k3s/server/cred/passwd>` as the token instead
        - The node should then register and show up in master `kubectl get nodes`
     - NOTE - The newly registered node didn't have a role, so manually assigned one with `kubectl label nodes pi3 kubernetes.io/role=worker`. This can be done when installing the agent via `--node-label 'node_type=worker'`
+    
+
+# Setup Pi 4 (Internal - Cluster 1 Slave)
+As before..
+- login, set password
+- `sudo nano /boot/firmware/cmdline.txt`, add `cgroup_enable=cpuset cgroup_enable=memory cgroup_memory=1`, reboot
+- `sudo curl -sfL https://get.k3s.io | K3S_TOKEN="snip" K3S_URL="https://192.168.86.26:6443" K3S_NODE_NAME="pi4" INSTALL_K3S_VERSION="v1.23.7+k3s1" sh -`
+
+
+# Setup Pi ? (Exteranl - Rancher Manager)
+- https://ubuntu.com/tutorials/how-to-install-ubuntu-on-your-raspberry-pi#3-wifi-or-ethernet
+  - Incorrect password, fixed by https://oastic.com/posts/how-to-set-up-wifi-on-ubuntu-running-on-the-raspberry-pi-4/
+  - Device in google home shows up on main network, not guest
+
 
 # Apps Apps Apps
 ## Pihole - https://pi-hole.net/
-### Install
-- https://www.technicallywizardry.com/pihole-docker-kubernetes/
-- https://uthark.github.io/post/2021-10-06-running-pihole-kubernetes/
-- https://subtlepseudonym.medium.com/pi-hole-on-kubernetes-87fc8cdeeb2e (see gotcha at the end RE services)
-  - ```
-    As I mentioned earlier, we’re using a basic Service definition with an explicitly defined external IP address. The downside to this is that all requests reflected in the pihole dashboard will be forwarded from the kube-dns cluster internal IP address.
+Ran through helm instructions from https://www.jeffgeerling.com/blog/2020/raspberry-pi-cluster-episode-4-minecraft-pi-hole-grafana-and-more
+- https://github.com/MoJo2600/pihole-kubernetes
+- NOTE - serviceTCP,serviceUDP are now serviceWeb and serviceDns
+- ```
+  adminPassword: `<snip>`
+  ingress:
+    enabled: true
+  persistentVolumeClaim:
+    enabled: true
+  serviceDns:
+    loadBalancerIP: '192.168.86.26' (ip of master node)
+    type: LoadBalancer
+  serviceWeb
+    loadBalancerIP: '192.168.86.26'
+    type: LoadBalancer
+    http:
+      port: 8080 (NOTE - default 80 was already taken)
+    https:
+      port: 8443 (NOTE - default 443 was already taken)
     ```
-- https://dev.to/ivanmoreno/how-to-deploy-pihole-and-wireguard-on-kubernetes-using-a-recursive-dns-4l9 (complicated)
-- https://cdcloudlogix.com/pihole-docker-and-kubernetes-simple-guide/
+- NOTE - The pihole container kept hitting imagepullbackoff issues due to `failed to resolve reference "docker.io/pihole/pihole:2022.05"` / `dial tcp: lookup registry-1.docker.io on 127.0.0.53:53: read udp 127.0.0.1:46824->127.0.0.53:53: i/o timeout`. Turns out the DNS lookup was failing in the nodes and I had to manually update `/etc/resolv.conf` from 127.0.0.53 to 8.8.8.8
+- NOTE - When adding second slave node same happened but immediately
+## Plex - https://www.plex.tv/
+- https://artifacthub.io/packages/helm/k8s-at-home/plex / https://github.com/k8s-at-home/charts
+- NOTE - Not point & click install
 
 ## To think about
+dashboard/metrics
 unbound (eh Unbound  
 Pihole remote app (ios only)
 https://github.com/pucherot/Pi.Alert
@@ -141,6 +178,7 @@ dnsmasq??
   - used by cert manager - `kubectl -n kube-system get secret k3s-serving -o yaml`, should include `tls-san`
   - `sudo cat /var/lib/rancher/k3s/server/cred/passwd` / `sudo cat /var/lib/rancher/k3s/server/node-token`
   - `kubectl label nodes pi3 kubernetes.io/role=worker`
+  - kubeconfig `/etc/rancher/k3s/k3s.yaml`
   - server
     - `systemctl status k3s` / `journalctl -u k3s -f`
     - `systemctl status rancher-system-agent` / `journalctl -u rancher-system-agent -f`
@@ -157,8 +195,3 @@ dnsmasq??
 - https://rancher.com/docs/rancher/v2.6/en/installation/resources/update-rancher-cert/
 - https://www.suse.com/c/rancher_blog/manual-rotation-of-certificates-in-rancher-kubernetes-clusters/
 - https://jmrobles.medium.com/fix-rancher-ssl-certificate-aaa9cb7cc7de
-
-
-# Scrap
-
-
