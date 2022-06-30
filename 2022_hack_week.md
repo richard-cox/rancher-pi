@@ -1,4 +1,5 @@
 # Versions / Restrictions
+Understand limitations of pi hardward, kube versions, and rancher versions
 - https://rancher.com/docs/rancher/v2.6/en/cluster-provisioning/node-requirements/
 - https://www.suse.com/assets/EN-2.6.5SupportMatrix-300422-0116-26.pdf
 - https://rancher.com/docs/rancher/v2.6/en/installation/requirements/#k3s-specific-requirements / https://rancher.com/docs/rancher/v2.6/en/installation/requirements/#k3s-kubernetes
@@ -11,7 +12,7 @@ Ubuntu Server 20.04.4 LTS
 - https://ubuntu.com/tutorials/how-to-install-ubuntu-on-your-raspberry-pi#4-boot-ubuntu-server
   - Pi imager to prep card
 - Static ip 
-  - Via router, not Os (https://pimylifeup.com/ubuntu-20-04-static-ip-address/)
+  - Via router, not OS (https://pimylifeup.com/ubuntu-20-04-static-ip-address/)
 
 # Pi's
 - Case - https://thepihut.com/collections/raspberry-pi-cases/products/8-slot-cloudlet-cluster-case
@@ -160,15 +161,15 @@ Ran through helm instructions from https://www.jeffgeerling.com/blog/2020/raspbe
 - NOTE - Not point & click install
 
 ## To think about
-dashboard/metrics
-unbound (eh Unbound  
-Pihole remote app (ios only)
-https://github.com/pucherot/Pi.Alert
-vps (with pihole?)
-DO monitor
-Plex
-MiniDLNA (vs plex?)
-dnsmasq??
+- dashboard/metrics
+- vps (with pihole?)
+- unbound (eh Unbound  
+- Pihole remote app (ios only)
+- https://github.com/pucherot/Pi.Alert
+- DO monitor
+- Plex
+- MiniDLNA (vs plex?)
+- dnsmasq??
 
 # Useful
 ## Commands
