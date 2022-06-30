@@ -53,8 +53,6 @@ Ubuntu Server 20.04.4 LTS
   - Pi? (8GB - 64GB)
   - Pi? (4GB - 64GB)
 
-NOTE - The case has four fans in, which are noiser than expected. Had hoped to keep the unit centrally in my flat, however had to move it in to a cupboard.
-  
 # Setup Pi 1 (Internal - Rancher Manager)
 - Install K3S
   - https://rancher.com/docs/k3s/latest/en/installation/install-options/ / https://rancher.com/docs/rancher/v2.6/en/installation/resources/k8s-tutorials/ha-with-external-db/
@@ -160,6 +158,9 @@ Ran through helm instructions from https://www.jeffgeerling.com/blog/2020/raspbe
 - https://artifacthub.io/packages/helm/k8s-at-home/plex / https://github.com/k8s-at-home/charts
 - NOTE - Not point & click install
 
+NOTE - The case has four fans in, which are noiser than expected. Had hoped to keep the unit centrally in my flat, however plan to move it to a storage cupboard. 
+NOTE - There's only one socket in the cupboard which powers a washer/dryer. I had planned to use the existing power block running the pi's with a new wifi switch and plug the washer in to that... however the ampage is too low. Aborted.
+
 ## To think about
 - dashboard/metrics
 - vps (with pihole?)
@@ -170,6 +171,10 @@ Ran through helm instructions from https://www.jeffgeerling.com/blog/2020/raspbe
 - Plex
 - MiniDLNA (vs plex?)
 - dnsmasq??
+
+# Misc
+- Had a play around with Lens
+- Rancher Bugs/UX issues summarised in https://github.com/rancher/dashboard/issues/6238
 
 # Useful
 ## Commands
